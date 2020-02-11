@@ -2,20 +2,24 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BasicSeek : MonoBehaviour
+public class BasicEvade : MonoBehaviour
 {
     // GameObject which the agent seeks towards.
     public GameObject target;
 
     // Speed at which the agent moves.
     public float speed;
+    //public Vector3 MaxVelocity;
     public Vector3 CurrentVelocity;
 
-    private Rigidbody rb;
+    private Rigidbody oRb;
 
     private void Start()
     {
-        rb = GetComponent<Rigidbody>();
+        // Temp solution. Later will make a "SteeringAgent" 
+        // class for these behaviours to derive from. That
+        // will be what eventually holds CurrentVelocity.
+        oRb = target.GetComponent<Rigidbody>();
     }
 
     void Update()
@@ -28,19 +32,11 @@ public class BasicSeek : MonoBehaviour
     /// </summary>
     private void HandbookMethod()
     {
-        Vector3 v = ((target.transform.position - transform.position) * speed).normalized;
-        Vector3 force = v - CurrentVelocity;
+        Vector3 v = ((transform.position - target.transform.position + oRb.velocity) * speed).normalized;
+        Vector3 force = v.normalized * speed - CurrentVelocity;
         CurrentVelocity += force * Time.deltaTime;
         transform.position += CurrentVelocity * Time.deltaTime;
         transform.rotation = Quaternion.LookRotation(v);
-    }
-
-    /// <summary>
-    /// Uses Unity's Vector3.Move towards.
-    /// </summary>
-    private void MoveTowardsMethod()
-    {
-        transform.position = Vector3.MoveTowards(transform.position, target.transform.position, speed * Time.deltaTime);
     }
 
     private void OnDrawGizmos()
