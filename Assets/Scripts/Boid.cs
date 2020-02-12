@@ -166,6 +166,23 @@ public class Boid : MonoBehaviour
         return temp;
     }
 
+    /// <summary>
+    /// Basic obstacle avoidance. 
+    /// Requires any obstacles to be on the Obstacle Layer (9)!
+    /// </summary>
+    private Vector3 Avoid()
+    {
+        Vector3 temp = Vector3.zero;
+
+        // raycast along velocity
+        // if you detect a collision on something matching the layermask,
+        // raycast velocity * a random small rotation
+        // keep going until you dont collide with anything
+        // once you find a clear path, try to move towards where its clear.
+
+        return temp;
+    }
+
     void OnTriggerEnter(Collider other)
     {
         //Debug.Log("I'm hit!");
@@ -183,5 +200,11 @@ public class Boid : MonoBehaviour
             // Boid in the list that matches the Boid who just left.
             neighborhoodL.Remove(other.GetComponent<Boid>());
         }
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.white;
+        Gizmos.DrawRay(transform.position, velocity);
     }
 }
