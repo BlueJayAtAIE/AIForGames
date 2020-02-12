@@ -202,9 +202,9 @@ public class Boid : MonoBehaviour
         }
     }
 
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.white;
-        Gizmos.DrawRay(transform.position, velocity);
-    }
+    //private void OnDrawGizmos()
+    //{
+    //    Gizmos.color = Color.white;
+    //    Gizmos.DrawRay(transform.position, velocity);
+    //}
 }
