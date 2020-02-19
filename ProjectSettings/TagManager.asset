@@ -6,6 +6,7 @@ TagManager:
   tags:
   - KillPlane
   - Boid
+  - Node
   layers:
   - Default
   - TransparentFX
