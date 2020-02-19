@@ -30,7 +30,7 @@ public class NodeSpawner : MonoBehaviour
         {
             for (int j = 0; j < y; j++)
             {
-                if (i - 1 > 0)
+                if (i - 1 >= 0)
                 {
                     grid[i, j].connections.Add(grid[i - 1, j]);
                 }
@@ -40,7 +40,7 @@ public class NodeSpawner : MonoBehaviour
                     grid[i, j].connections.Add(grid[i + 1, j]);
                 }
 
-                if (j - 1 > 0)
+                if (j - 1 >= 0)
                 {
                     grid[i, j].connections.Add(grid[i, j - 1]);
                 }

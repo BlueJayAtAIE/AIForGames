@@ -152,8 +152,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nodePrefab: {fileID: 5804644184079485334, guid: 2f3d771ab3327ce4388281016107f6e8,
     type: 3}
-  x: 8
-  y: 8
+  x: 9
+  y: 9
 --- !u!4 &203888370
 Transform:
   m_ObjectHideFlags: 0
@@ -187,7 +187,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!54 &1020457338
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -471,6 +471,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9cf58aad9d01f4b41a6e708fe51338f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  destination: {fileID: 0}
+  finalPath: []
 --- !u!1 &1856030703
 GameObject:
   m_ObjectHideFlags: 0

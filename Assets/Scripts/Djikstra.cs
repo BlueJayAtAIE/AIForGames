@@ -91,6 +91,23 @@ public class Djikstra : MonoBehaviour
 
             SortNodes(ref open);
         }
+
+        // Repeated from above- in the case we get through the entire open list.
+        if (closed.Exists(check => destination == check))
+        {
+            // We've found the shortest path!
+            // Clear out the old path.
+            finalPath.Clear();
+            Node temp = destination;
+            finalPath.Insert(0, destination);
+
+            // Add the previous of each node until we reach the start (start is null).
+            while (temp.previous != null)
+            {
+                finalPath.Insert(0, temp.previous);
+                temp = temp.previous;
+            }
+        }
     }
 
     /// <summary>
@@ -119,9 +136,11 @@ public class Djikstra : MonoBehaviour
     {
         foreach (var n in finalPath)
         {
+            // Gizmo for highlighting nodes in the final path.
             Gizmos.color = Color.red;
             Gizmos.DrawSphere(new Vector3(n.gameObject.transform.position.x, n.gameObject.transform.position.y + 0.5f, n.gameObject.transform.position.z), 0.2f);
 
+            // Gizmo for drawing the path through the final path.
             Gizmos.color = Color.black;
             if (n.previous != null)
             {
@@ -130,6 +149,7 @@ public class Djikstra : MonoBehaviour
 
         }
 
+        // Gizmo for the current destination node.
         if (destination != null)
         {
             Gizmos.color = Color.green;
