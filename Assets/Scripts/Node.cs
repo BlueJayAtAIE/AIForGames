@@ -23,7 +23,7 @@ public class Node : MonoBehaviour
         Gizmos.color = Color.blue;
         foreach (var node in connections)
         {
-            Gizmos.DrawLine(transform.position, node.gameObject.transform.position);
+            //Gizmos.DrawLine(transform.position, node.gameObject.transform.position);
         }
     }
 }
