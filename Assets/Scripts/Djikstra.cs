@@ -4,10 +4,11 @@ using UnityEngine;
 
 public class Djikstra : MonoBehaviour
 {
-    private List<Node> nodeList = new List<Node>();
-    private Node current;
+    private Node currentOn;
+    private Vector3 CurrentVelocity;
 
     public Node destination;
+    public float speed;
 
     [HideInInspector]
     public List<Node> finalPath = new List<Node>();
@@ -17,45 +18,40 @@ public class Djikstra : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.RightControl))
         {
             Path();
-            // TODO, seek along the final path.
+        }
+
+        // Idealy I should just have a BasicSeek script component on the same object, and
+        // just set the target to finalPath[0]. But I'm doing this just for now.
+        if (finalPath.Count > 0)
+        {
+            Vector3 v = ((finalPath[0].gameObject.transform.position - transform.position) * speed).normalized;
+            Vector3 force = v - CurrentVelocity;
+            CurrentVelocity += force * Time.deltaTime;
+            transform.position += CurrentVelocity * Time.deltaTime;
+            //transform.rotation = Quaternion.LookRotation(v);
         }
     }
 
     private void Path()
     {
-        // Gather and mark all nodes as unvisited.
-        nodeList.Clear();
         NodeSpawner nManager = GameObject.Find("NodeGenerator").GetComponent<NodeSpawner>();
         foreach (var node in nManager.grid)
         {
-            nodeList.Add(node);
+            node.GScore = 0;
+            node.previous = null;
         }
 
         List<Node> open = new List<Node>();
         List<Node> closed = new List<Node>();
-        // TODO, how to find what node we start on? Right now its 0,0-
-        // but we can't always be sure of that...
-
-        open.Add(nodeList[0]);
+        Node current = currentOn;
+        
+        open.Add(current);
 
         while (open.Count > 0)
         {
             // If the destination node is actually in our closed list...
             if (closed.Exists(check => destination == check))
             {
-                // We've found the shortest path!
-                // Clear out the old path.
-                finalPath.Clear();
-                Node temp = destination;
-                finalPath.Insert(0, destination);
-
-                // Add the previous of each node until we reach the start (start is null).
-                while (temp.previous != null)
-                {
-                    finalPath.Insert(0, temp.previous);
-                    temp = temp.previous;
-                }
-
                 break;
             }
 
@@ -92,7 +88,7 @@ public class Djikstra : MonoBehaviour
             SortNodes(ref open);
         }
 
-        // Repeated from above- in the case we get through the entire open list.
+        // This will be hit when the while ends naturally or when it hits the break.
         if (closed.Exists(check => destination == check))
         {
             // We've found the shortest path!
@@ -107,6 +103,10 @@ public class Djikstra : MonoBehaviour
                 finalPath.Insert(0, temp.previous);
                 temp = temp.previous;
             }
+
+            // Remove the node we're currently on as we son't need to seek to
+            // something we're already at.
+            finalPath.Remove(currentOn);
         }
     }
 
@@ -132,8 +132,32 @@ public class Djikstra : MonoBehaviour
         }
     }
 
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Node"))
+        {
+            Node collidedNode = collision.gameObject.GetComponent<Node>();
+            currentOn = collidedNode;
+
+            if (finalPath.Count > 0)
+            {
+                if (collidedNode == finalPath[0])
+                {
+                    finalPath.Remove(collidedNode);
+                }
+            }
+        }
+    }
+
     private void OnDrawGizmos()
     {
+        // Gizmo for the current destination node.
+        if (destination != null)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawSphere(new Vector3(destination.gameObject.transform.position.x, destination.gameObject.transform.position.y + 0.5f, destination.gameObject.transform.position.z), 0.2f);
+        }
+
         foreach (var n in finalPath)
         {
             // Gizmo for highlighting nodes in the final path.
@@ -146,14 +170,13 @@ public class Djikstra : MonoBehaviour
             {
                 Gizmos.DrawLine(n.gameObject.transform.position, n.previous.gameObject.transform.position);
             }
-
         }
 
         // Gizmo for the current destination node.
-        if (destination != null)
+        if (currentOn != null)
         {
-            Gizmos.color = Color.green;
-            Gizmos.DrawSphere(new Vector3(destination.gameObject.transform.position.x, destination.gameObject.transform.position.y + 0.5f, destination.gameObject.transform.position.z), 0.2f);
+            Gizmos.color = Color.blue;
+            Gizmos.DrawSphere(new Vector3(currentOn.gameObject.transform.position.x, currentOn.gameObject.transform.position.y + 0.5f, currentOn.gameObject.transform.position.z), 0.2f);
         }
     }
 }

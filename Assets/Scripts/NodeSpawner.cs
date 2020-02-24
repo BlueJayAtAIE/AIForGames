@@ -24,7 +24,7 @@ public class NodeSpawner : MonoBehaviour
             }
         }
 
-        // Add the connections to the nodes. 
+        // Add the connections to the nodes.
         // Do NOT add it if either "x" or "y" end up outside the array. This accounts for corners/edges.
         for (int i = 0; i < x; i++)
         {
