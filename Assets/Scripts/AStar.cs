@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Djikstra : MonoBehaviour
+public class AStar : MonoBehaviour
 {
     private Node currentOn;
     private Vector3 CurrentVelocity;
@@ -38,13 +38,15 @@ public class Djikstra : MonoBehaviour
         foreach (var node in nManager.grid)
         {
             node.GScore = 0;
+            node.HScore = 0;
+            node.FScore = 0;
             node.previous = null;
         }
 
         List<Node> open = new List<Node>();
         List<Node> closed = new List<Node>();
         Node current = currentOn;
-        
+
         open.Add(current);
 
         while (open.Count > 0)
@@ -69,6 +71,8 @@ public class Djikstra : MonoBehaviour
                     if (!open.Exists(check => n == check))
                     {
                         n.GScore = current.GScore + n.costToMove;
+                        n.HScore = (int)Mathf.Abs(current.transform.position.x + destination.transform.position.x) + (int)Mathf.Abs(current.transform.position.z + destination.transform.position.z);
+                        n.FScore = n.GScore + n.HScore;
                         n.previous = current;
                         open.Add(n);
                     }
@@ -121,11 +125,11 @@ public class Djikstra : MonoBehaviour
 
             int j = i - 1;
 
-            while (j >= 0 && nList[j].GScore > key.GScore)
+            while (j >= 0 && nList[j].FScore > key.FScore)
             {
                 nList[j + 1] = nList[j];
                 j = j - 1;
-                nList[j + 1] = key;
+                nList[(j + 1)] = key;
 
                 if (j > nList.Count) j = 0;
             }
