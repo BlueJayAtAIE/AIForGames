@@ -742,7 +742,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 726160228}
-  speed: 90
+  speed: 4
   CurrentVelocity: {x: 1, y: 1, z: 1}
 --- !u!114 &900902278
 MonoBehaviour:

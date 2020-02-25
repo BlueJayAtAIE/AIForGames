@@ -31,7 +31,7 @@ public class BasicSeek : MonoBehaviour
         Vector3 v = ((target.transform.position - transform.position) * speed).normalized;
         Vector3 force = v - CurrentVelocity;
         CurrentVelocity += force * Time.deltaTime;
-        transform.position += CurrentVelocity * Time.deltaTime;
+        transform.position += CurrentVelocity * speed * Time.deltaTime;
         transform.rotation = Quaternion.LookRotation(v);
     }
 

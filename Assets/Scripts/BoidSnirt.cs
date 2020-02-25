@@ -20,6 +20,8 @@ public class BoidSnirt : MonoBehaviour
     // This will be set to random numbers upon Start.
     public Vector3 velocity;
 
+    public float speed = 4;
+
     // Used for controlling the overall flock behavior.
     public int separationMultiplier = 1;  // Set to -1 to cause collisions.
     public int alignmentMultiplier = 1;  // Set to -1 to cause chaos.
@@ -60,7 +62,7 @@ public class BoidSnirt : MonoBehaviour
         // DEBUG ONLY
         //velocity = new Vector3(1, 1, 1);
 
-        transform.position = transform.position + velocity * Time.deltaTime;
+        transform.position = transform.position + velocity * speed * Time.deltaTime;
     }
 
     /// <summary>
