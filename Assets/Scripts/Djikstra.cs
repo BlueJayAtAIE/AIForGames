@@ -104,7 +104,7 @@ public class Djikstra : MonoBehaviour
                 temp = temp.previous;
             }
 
-            // Remove the node we're currently on as we son't need to seek to
+            // Remove the node we're currently on as we don't need to seek to
             // something we're already at.
             finalPath.Remove(currentOn);
         }
