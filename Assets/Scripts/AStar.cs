@@ -108,14 +108,14 @@ public class AStar : MonoBehaviour
                 temp = temp.previous;
             }
 
-            // Remove the node we're currently on as we son't need to seek to
+            // Remove the node we're currently on as we don't need to seek to
             // something we're already at.
             finalPath.Remove(currentOn);
         }
     }
 
     /// <summary>
-    /// Sorts A given list of nodes by their G Score. Uses Insertion sort algorithm.
+    /// Sorts A given list of nodes by their F Score. Uses Insertion sort algorithm.
     /// </summary>
     private void SortNodes(ref List<Node> nList)
     {
@@ -129,7 +129,7 @@ public class AStar : MonoBehaviour
             {
                 nList[j + 1] = nList[j];
                 j = j - 1;
-                nList[(j + 1)] = key;
+                nList[j + 1] = key;
 
                 if (j > nList.Count) j = 0;
             }
