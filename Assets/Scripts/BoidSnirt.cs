@@ -54,15 +54,13 @@ public class BoidSnirt : MonoBehaviour
         Vector3 ruleThree = cohesionMultiplier * Cohesion();
         Vector3 ruleFour = Bound();
 
-        // Add each of them toegther for your final velocity.
-        // Not certain which of these two should be used- yield different results.
         velocity = velocity + ((ruleOne + ruleTwo + ruleThree + ruleFour) * Time.deltaTime);
-        //velocity = velocity + ruleOne + ruleTwo + ruleThree * Time.deltaTime;
 
         // DEBUG ONLY
         //velocity = new Vector3(1, 1, 1);
 
         transform.position = transform.position + velocity * speed * Time.deltaTime;
+        transform.rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0, velocity.z));
     }
 
     /// <summary>
@@ -77,7 +75,7 @@ public class BoidSnirt : MonoBehaviour
         // If it is, add a repelling force.
         foreach (var b in neighborhoodL)
         {
-            if (Vector3.Distance(b.gameObject.transform.position, transform.position) < 1)
+            if (Vector3.Distance(b.gameObject.transform.position, transform.position) < 3)
             {
                 temp = temp - (b.gameObject.transform.position - transform.position);
             }
