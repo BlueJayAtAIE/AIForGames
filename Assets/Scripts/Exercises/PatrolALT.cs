@@ -16,11 +16,11 @@ public class PatrolALT : MonoBehaviour
     {
         target = waypoints[0];
 
-        behaviorTreeRoot = new Selector(new IBehavior[]{
-                                            new Sequence(new IBehavior[]{
-                                                 new WaypointReached(target, gameObject),
-                                                 new GetNewWaypoint(waypoints, gameObject)}),
-                                            new MoveTowardsWaypoint(target, gameObject, speed)});
+        behaviorTreeRoot = new Selector( 
+                               new Sequence(
+                                    new WaypointReached(target, gameObject),
+                                    new GetNewWaypoint(waypoints, gameObject)),
+                               new MoveTowardsWaypoint(target, gameObject, speed));
     }
 
     void Update()

@@ -16,7 +16,7 @@ public class Selector : IBehavior
 
     public Selector() { }
     
-    public Selector(IBehavior[] children)
+    public Selector(params IBehavior[] children)
     {
         this.children = children;
     }
@@ -45,7 +45,7 @@ public class Sequence : IBehavior
 
     public Sequence() { }
 
-    public Sequence(IBehavior[] children)
+    public Sequence(params IBehavior[] children)
     {
         this.children = children;
     }
