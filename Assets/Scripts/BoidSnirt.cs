@@ -14,7 +14,6 @@ public class BoidSnirt : MonoBehaviour
 
     // List of Boids that influence this one.
     private List<BoidSnirt> neighborhoodL;
-    //private Boid[] neighborhood;
 
     // The current velocity of the boid. 
     // This will be set to random numbers upon Start.
@@ -129,7 +128,7 @@ public class BoidSnirt : MonoBehaviour
     }
 
     /// <summary>
-    /// Adds force to keep them within user-specified bounds.
+    /// Adds force to keep the boids within user-specified bounds.
     /// </summary>
     private Vector3 Bound()
     {
@@ -187,7 +186,6 @@ public class BoidSnirt : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        //Debug.Log("I'm hit!");
         if (other.gameObject.CompareTag("Boid"))
         {
             neighborhoodL.Add(other.GetComponent<BoidSnirt>());
@@ -198,8 +196,6 @@ public class BoidSnirt : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Boid"))
         {
-            // This SHOULD go through and only get rid of the
-            // Boid in the list that matches the Boid who just left.
             neighborhoodL.Remove(other.GetComponent<BoidSnirt>());
         }
     }

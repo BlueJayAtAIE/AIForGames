@@ -28,86 +28,89 @@ public class Patrol : MonoBehaviour
             currentDecision = currentDecision.MakeDecision();
         }
     }
-}
 
-public class WaypointReached : IDecision
-{
-    private Transform target;
-    private GameObject agent;
-    private IDecision trueBranch;
-    private IDecision falseBranch;
-
-    public WaypointReached() { }
-
-    public WaypointReached(Transform target, GameObject agent, IDecision trueBranch, IDecision falseBranch) 
+    class WaypointReached : IDecision
     {
-        this.target = target;
-        this.agent = agent;
-        this.trueBranch = trueBranch;
-        this.falseBranch = falseBranch;
-    }
+        private Transform target;
+        private GameObject agent;
+        private IDecision trueBranch;
+        private IDecision falseBranch;
 
-    public IDecision MakeDecision()
-    {
-        target = agent.GetComponent<Patrol>().target;
-        return Vector3.Distance(agent.transform.position, target.transform.position) < 1 ? trueBranch : falseBranch;
-    }
-}
+        public WaypointReached() { }
 
-public class GetWaypoint : IDecision
-{
-    private GameObject agent;
-    private Transform[] waypoints;
-    private int current;
-
-    public GetWaypoint() { }
-
-    public GetWaypoint(GameObject agent, Transform[] waypoints, int current) 
-    {
-        this.agent = agent;
-        this.waypoints = waypoints;
-        this.current = current;
-    }
-
-    public IDecision MakeDecision()
-    {
-        current++;
-
-        if (current > waypoints.Length - 1)
+        public WaypointReached(Transform target, GameObject agent, IDecision trueBranch, IDecision falseBranch)
         {
-            current = 0;
+            this.target = target;
+            this.agent = agent;
+            this.trueBranch = trueBranch;
+            this.falseBranch = falseBranch;
         }
 
-        agent.GetComponent<Patrol>().target = waypoints[current];
+        public IDecision MakeDecision()
+        {
+            target = agent.GetComponent<Patrol>().target;
+            return Vector3.Distance(agent.transform.position, target.transform.position) < 1 ? trueBranch : falseBranch;
+        }
+    }
 
-        return null;
+    class GetWaypoint : IDecision
+    {
+        private GameObject agent;
+        private Transform[] waypoints;
+        private int current;
+
+        public GetWaypoint() { }
+
+        public GetWaypoint(GameObject agent, Transform[] waypoints, int current)
+        {
+            this.agent = agent;
+            this.waypoints = waypoints;
+            this.current = current;
+        }
+
+        public IDecision MakeDecision()
+        {
+            current++;
+
+            if (current > waypoints.Length - 1)
+            {
+                current = 0;
+            }
+
+            agent.GetComponent<Patrol>().target = waypoints[current];
+
+            return null;
+        }
+    }
+
+    class MoveTowardsPatrolpoint : IDecision
+    {
+        private Vector3 CurrentVelocity = new Vector3(0, 0, 0);
+        private Transform target;
+        private GameObject agent;
+        private float speed;
+
+        public MoveTowardsPatrolpoint() { }
+
+        public MoveTowardsPatrolpoint(Transform target, GameObject agent, float speed)
+        {
+            this.target = target;
+            this.agent = agent;
+            this.speed = speed;
+        }
+
+
+        public IDecision MakeDecision()
+        {
+            target = agent.GetComponent<Patrol>().target;
+            Vector3 v = ((target.transform.position - agent.transform.position) * speed).normalized;
+            Vector3 force = v - CurrentVelocity;
+            CurrentVelocity += force * Time.deltaTime;
+            agent.transform.position += CurrentVelocity * speed * Time.deltaTime;
+
+            return null;
+        }
     }
 }
 
-public class MoveTowardsPatrolpoint : IDecision
-{
-    private Vector3 CurrentVelocity = new Vector3(0, 0, 0);
-    private Transform target;
-    private GameObject agent;
-    private float speed;
 
-    public MoveTowardsPatrolpoint() { }
-
-    public MoveTowardsPatrolpoint(Transform target, GameObject agent, float speed)
-    {
-        this.target = target;
-        this.agent = agent;
-        this.speed = speed;
-    }
-
-    public IDecision MakeDecision()
-    {
-        target = agent.GetComponent<Patrol>().target;
-        Vector3 v = ((target.transform.position - agent.transform.position) * speed).normalized;
-        Vector3 force = v - CurrentVelocity;
-        CurrentVelocity += force * Time.deltaTime;
-        agent.transform.position += CurrentVelocity * speed * Time.deltaTime;
-
-        return null;
-    }
-}

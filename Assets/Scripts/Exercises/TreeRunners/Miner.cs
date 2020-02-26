@@ -34,114 +34,114 @@ public class Miner : MonoBehaviour
         }
     }
 
-}
-public class IsGoldFull : IDecision
-{
-    private GameObject agent;
-    private IDecision trueBranch;
-    private IDecision falseBranch;
-    private int gold;
-    private int goldCap;
-
-    public IsGoldFull() { }
-
-    public IsGoldFull(GameObject agent, IDecision trueBranch, IDecision falseBranch)
+    class IsGoldFull : IDecision
     {
-        this.agent = agent;
-        this.trueBranch = trueBranch;
-        this.falseBranch = falseBranch;
+        private GameObject agent;
+        private IDecision trueBranch;
+        private IDecision falseBranch;
+        private int gold;
+        private int goldCap;
+
+        public IsGoldFull() { }
+
+        public IsGoldFull(GameObject agent, IDecision trueBranch, IDecision falseBranch)
+        {
+            this.agent = agent;
+            this.trueBranch = trueBranch;
+            this.falseBranch = falseBranch;
+        }
+
+        public IDecision MakeDecision()
+        {
+            gold = agent.GetComponent<Miner>().goldMined;
+            goldCap = agent.GetComponent<Miner>().goldCapacity;
+            return gold >= goldCap ? trueBranch : falseBranch;
+        }
     }
 
-    public IDecision MakeDecision()
+    class WhereAmI : IDecision
     {
-        gold = agent.GetComponent<Miner>().goldMined;
-        goldCap = agent.GetComponent<Miner>().goldCapacity;
-        return gold >= goldCap ? trueBranch : falseBranch;
-    }
-}
+        private GameObject agent;
+        private Transform target;
+        private IDecision trueBranch;
+        private IDecision falseBranch;
 
-public class WhereAmI : IDecision
-{
-    private GameObject agent;
-    private Transform target;
-    private IDecision trueBranch;
-    private IDecision falseBranch;
+        public WhereAmI() { }
 
-    public WhereAmI() { }
+        public WhereAmI(GameObject agent, Transform target, IDecision trueBranch, IDecision falseBranch)
+        {
+            this.agent = agent;
+            this.target = target;
+            this.trueBranch = trueBranch;
+            this.falseBranch = falseBranch;
+        }
 
-    public WhereAmI(GameObject agent, Transform target, IDecision trueBranch, IDecision falseBranch)
-    {
-        this.agent = agent;
-        this.target = target;
-        this.trueBranch = trueBranch;
-        this.falseBranch = falseBranch;
+        public IDecision MakeDecision()
+        {
+            return Vector3.Distance(agent.transform.position, target.transform.position) < 1 ? trueBranch : falseBranch;
+        }
     }
 
-    public IDecision MakeDecision()
+    class DumpGold : IDecision
     {
-        return Vector3.Distance(agent.transform.position, target.transform.position) < 1 ? trueBranch : falseBranch;
-    }
-}
+        GameObject agent;
 
-public class DumpGold : IDecision
-{
-    GameObject agent;
+        public DumpGold() { }
 
-    public DumpGold() { }
+        public DumpGold(GameObject agent)
+        {
+            this.agent = agent;
+        }
 
-    public DumpGold(GameObject agent)
-    {
-        this.agent = agent;
-    }
-
-    public IDecision MakeDecision()
-    {
-        agent.GetComponent<Miner>().goldMined = 0;
-        return null;
-    }
-}
-
-public class GatherGold : IDecision
-{
-    GameObject agent;
-
-    public GatherGold() { }
-
-    public GatherGold(GameObject agent)
-    {
-        this.agent = agent;
+        public IDecision MakeDecision()
+        {
+            agent.GetComponent<Miner>().goldMined = 0;
+            return null;
+        }
     }
 
-    public IDecision MakeDecision()
+    class GatherGold : IDecision
     {
-        agent.GetComponent<Miner>().goldMined = agent.GetComponent<Miner>().goldCapacity;
-        return null;
-    }
-}
+        GameObject agent;
 
-public class MoveTo : IDecision
-{
-    private Vector3 CurrentVelocity = new Vector3(0, 0, 0);
-    private Transform target;
-    private GameObject agent;
-    private float speed;
+        public GatherGold() { }
 
-    public MoveTo() { }
+        public GatherGold(GameObject agent)
+        {
+            this.agent = agent;
+        }
 
-    public MoveTo(Transform target, GameObject agent, float speed)
-    {
-        this.target = target;
-        this.agent = agent;
-        this.speed = speed;
+        public IDecision MakeDecision()
+        {
+            agent.GetComponent<Miner>().goldMined = agent.GetComponent<Miner>().goldCapacity;
+            return null;
+        }
     }
 
-    public IDecision MakeDecision()
+    class MoveTo : IDecision
     {
-        Vector3 v = ((target.transform.position - agent.transform.position) * speed).normalized;
-        Vector3 force = v - CurrentVelocity;
-        CurrentVelocity += force * Time.deltaTime;
-        agent.transform.position += CurrentVelocity * speed * Time.deltaTime;
+        private Vector3 CurrentVelocity = new Vector3(0, 0, 0);
+        private Transform target;
+        private GameObject agent;
+        private float speed;
 
-        return null;
+        public MoveTo() { }
+
+        public MoveTo(Transform target, GameObject agent, float speed)
+        {
+            this.target = target;
+            this.agent = agent;
+            this.speed = speed;
+        }
+
+        public IDecision MakeDecision()
+        {
+            Vector3 v = ((target.transform.position - agent.transform.position) * speed).normalized;
+            Vector3 force = v - CurrentVelocity;
+            CurrentVelocity += force * Time.deltaTime;
+            agent.transform.position += CurrentVelocity * speed * Time.deltaTime;
+
+            return null;
+        }
     }
 }
