@@ -133,7 +133,7 @@ public class FiniteStateMachineAgent : MonoBehaviour
 
     private void OnPatrolExit()
     {
-
+        Debug.Log("Patrol Exit.");
     }
 
     private void OnSeekEnter()
@@ -153,12 +153,12 @@ public class FiniteStateMachineAgent : MonoBehaviour
 
     private void OnSeekExit()
     {
-
+        // Empty
     }
 
     private void OnFleeEnter()
     {
-
+        // Empty
     }
 
     private void Flee()
@@ -173,6 +173,6 @@ public class FiniteStateMachineAgent : MonoBehaviour
 
     private void OnFleeExit()
     {
-
+        // Empty
     }
 }
