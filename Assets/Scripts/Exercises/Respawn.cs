@@ -4,11 +4,16 @@ using UnityEngine;
 
 public class Respawn : MonoBehaviour
 {
-    private Vector3 origin = new Vector3(0, 1, 0);
+    private Vector3 origin;
+
+    private void Start()
+    {
+        origin = gameObject.transform.position;
+    }
 
     private void OnTriggerEnter(Collider collision)
     {
-        if (collision.gameObject.tag == "KillPlane")
+        if (collision.gameObject.CompareTag("KillPlane"))
         {
             gameObject.transform.position = origin;
         }
