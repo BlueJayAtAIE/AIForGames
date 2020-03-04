@@ -30,8 +30,17 @@ public class Snirt : MonoBehaviour
     public float staminaMax = 50;  // Stamina cap- used to fill the stamina upon resting. Editable in inspector.
     #endregion
 
+    #region Pathfinding Variables
+    private static GridSpawner gridManager;
+
+    private NodeEX currentOn;  // The current node the Snirt is stepping on.
+    private NodeEX destination; // The node the Snirt is attempting to path to.
+
+    private List<NodeEX> finalPath = new List<NodeEX>();
+    #endregion
+
     #region Flocking Variables
-    private List<Snirt> neighborhoodL;  // List of Boids that influence this one when flocking.
+    private List<Snirt> neighborhoodL = new List<Snirt>();  // List of Boids that influence this one when flocking.
     [HideInInspector]
     public bool considerMe = true;  // Used for determining if the Snirt should be added to the neighborhood.
 
@@ -45,11 +54,10 @@ public class Snirt : MonoBehaviour
 
     void Start()
     {
-        neighborhoodL = new List<Snirt>();
+        gridManager = GameObject.FindGameObjectWithTag("NodeSpawner").GetComponent<GridSpawner>();
 
-        predator = GameObject.FindGameObjectWithTag("Enemy");
+        predator = GameObject.FindGameObjectWithTag("Enemy"); // TEMP
 
-        // TODO
         behaviourTreeRoot = new Selector(                        // <ROOT>
                         new Sequence(                               // [Predator Check]
                             new PredatorInRangeCheck(gameObject),       // (Can See Predator?)
@@ -148,10 +156,34 @@ public class Snirt : MonoBehaviour
 
     class CreatePathToFood : IBehavior
     {
+        Snirt snirt;
+        List<NodeEX> foodNodes;
+
+        public CreatePathToFood() { }
+        public CreatePathToFood(GameObject agent, List<NodeEX> nodes)
+        {
+            snirt = agent.GetComponent<Snirt>();
+            foodNodes = nodes;
+        }
+
         public BehaviorResult DoBehavior()
         {
+            // Set a temp target holding the conents of the first index.
+            NodeEX target = foodNodes[0];
+
+            // Quickly calculate the Manhattan Distance, and set target to whatever is the lowest of the two.
+            foreach (var n in foodNodes)
+            {
+                if (Mathf.Abs(snirt.transform.position.x + n.transform.position.x) + Mathf.Abs(snirt.transform.position.z + n.transform.position.z) < Mathf.Abs(snirt.transform.position.x + target.transform.position.x) + Mathf.Abs(snirt.transform.position.z + target.transform.position.z))
+                {
+                    target = n;
+                }
+            }
+
+            // Use this closest target to preform A*.
             // TODO
-            return BehaviorResult.FAILURE;
+
+            return BehaviorResult.SUCCESS;
         }
     }
 
@@ -160,7 +192,7 @@ public class Snirt : MonoBehaviour
         public BehaviorResult DoBehavior()
         {
             // TODO
-            return BehaviorResult.FAILURE;
+            return BehaviorResult.SUCCESS;
         }
     }
     #endregion

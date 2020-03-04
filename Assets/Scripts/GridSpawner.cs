@@ -11,10 +11,13 @@ public class GridSpawner : MonoBehaviour
 
     [HideInInspector]
     public NodeEX[,] grid;
+    [HideInInspector]
+    public List<NodeEX> foodNodes;
 
     void Start()
     {
         grid = new NodeEX[x, y];
+        foodNodes = new List<NodeEX>();
 
         for (int i = 0; i < x; i++)
         {
@@ -23,15 +26,21 @@ public class GridSpawner : MonoBehaviour
                 int randy = Random.Range(0, 100);
                 int spawn;
 
-                if (randy < 45) spawn = 0;       // Grass 1
-                else if (randy < 75) spawn = 1;  // Grass 2
-                else if (randy < 76) spawn = 2;  // Berry
-                else if (randy < 98) spawn = 3;  // Water
-                else if (randy < 99) spawn = 4;  // Snirt Spawner
-                else spawn = 5;                  // Tree
+                if (randy < 45) spawn = 0;       // Grass 1 (0-44)
+                else if (randy < 75) spawn = 1;  // Grass 2 (45-74)
+                else if (randy < 76) spawn = 2;  // Berry (75)
+                else if (randy < 98) spawn = 3;  // Water (76-97)
+                else if (randy < 99) spawn = 4;  // Snirt Spawner (98)
+                else spawn = 5;                  // Tree (99)
 
                 // Creates the node from the prefab, AND adds the node component to the grid array.
                 grid[i, j] = Instantiate(nodePrefabs[spawn], new Vector3(i, 0, j), Quaternion.identity).GetComponent<NodeEX>();
+                
+                // If the node was a berry bush (spawn case 2) also add it to the food list.
+                if (spawn == 2)
+                {
+                    foodNodes.Add(grid[i, j]);
+                }
             }
         }
 
