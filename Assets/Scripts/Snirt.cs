@@ -23,7 +23,7 @@ public class Snirt : MonoBehaviour
     public float speed = 4;
     public Vector3 velocityCap;  // A cap on the velocity to prevent extremely fast movement.
 
-    private float hunger;  // Slowly decreses. Once you get to around 10, look for food.
+    public float hunger;  // Slowly decreses. Once you get to around 10, look for food.
     public float hungerMax = 50;  // Hunger cap- used to fill the hunger upon eating. Editable in inspector.
 
     private float stamina;  // Slowly decreses. Once you get 0, rest and restore stamina.
@@ -58,22 +58,22 @@ public class Snirt : MonoBehaviour
 
         predator = GameObject.FindGameObjectWithTag("Enemy"); // TEMP
 
-        behaviourTreeRoot = new Selector(                        // <ROOT>
-                        new Sequence(                               // [Predator Check]
-                            new PredatorInRangeCheck(gameObject),       // (Can See Predator?)
-                            new FleeFromPredator(gameObject)),          // (Flee)
-                        new Sequence(                               // [Food]
-                            new LowFoodCheck(),                         // (Low on Food?)
-                            new Selector(                               // <Pathfinding>
-                                new Sequence(                               // [Path]
-                                    new NeedPathCheck(),                        // (Need a Path?)
-                                    new CreatePathToFood()),                    // (Create a Path)
-                                new SeekAlongPathToFood())),                // (Seek Along Path)
-                        new Selector(                               // <Wander>
-                            new Sequence(                               // [Move]
-                                new StaminaCheck(gameObject),               // (Stamina High Enough?)
-                                new WanderFlock(gameObject)),               // (Wander)
-                            new Rest(gameObject)));                     // (Rest)
+        behaviourTreeRoot = new Selector(                                                           // <ROOT>
+                        new Sequence(                                                                   // [Predator Check]
+                            new PredatorInRangeCheck(gameObject),                                           // (Can See Predator?)
+                            new FleeFromPredator(gameObject)),                                              // (Flee)
+                        new Sequence(                                                                   // [Food]
+                            new LowFoodCheck(gameObject),                                                   // (Low on Food?)
+                            new Selector(                                                                   // <Pathfinding>
+                                new Sequence(                                                                   // [Path]
+                                    new NeedPathCheck(gameObject),                                                 // (Need a Path?)
+                                    new CreatePathToFood(gameObject, gridManager.foodNodes)),                      // (Create a Path)
+                                new SeekAlongPathToFood(gameObject))),                                          // (Seek Along Path)
+                        new Selector(                                                                   // <Wander>
+                            new Sequence(                                                                   // [Move]
+                                new StaminaCheck(gameObject),                                                   // (Stamina High Enough?)
+                                new WanderFlock(gameObject)),                                                   // (Wander)
+                            new Rest(gameObject)));                                                         // (Rest)
 
         hunger = Random.Range(hungerMax - 20, hungerMax);
         stamina = Random.Range(staminaMax - 20, staminaMax);
@@ -89,179 +89,119 @@ public class Snirt : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Generate a new random velocity.
+    /// </summary>
     void RandomVelocity()
     {
         velocity = new Vector3(Random.Range(-2f, 2f), 0, Random.Range(-2f, 2f));
     }
 
-    #region Behavior Tree Items
-    #region Enemy Check
-    class PredatorInRangeCheck : IBehavior
+    #region Movement
+    /// <summary>
+    /// Move towards (Seek) the given target.
+    /// </summary>
+    public void MoveTowards(Vector3 target, float speedMod)
     {
-        Snirt snirt;
+        Vector3 v = ((target - transform.position) * (speed * speedMod)).normalized;
+        Vector3 force = v - velocity;
+        velocity += force * Time.deltaTime;
 
-        public PredatorInRangeCheck() { }
-        public PredatorInRangeCheck(GameObject agent)
-        {
-            snirt = agent.GetComponent<Snirt>();
-        }
+        velocity = Clamp(velocity, -velocityCap, velocityCap);
 
-        public BehaviorResult DoBehavior()
-        {
-            // TODO maybe improve this instead of having a hard coded distance check
-            return Vector3.Distance(snirt.transform.position, snirt.predator.transform.position) < 5 ? BehaviorResult.SUCCESS : BehaviorResult.FAILURE;
-        }
+        transform.position += velocity * (speed * speedMod) * Time.deltaTime;
+        transform.rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0, velocity.z));
     }
 
-    class FleeFromPredator : IBehavior
+    /// <summary>
+    /// Run (Flee) from the given target.
+    /// </summary>
+    public void MoveFrom(Vector3 target, float speedMod)
     {
-        Snirt snirt;
+        Vector3 v = ((transform.position - target) * (speed * speedMod)).normalized;
+        Vector3 force = v - velocity;
+        velocity += force * Time.deltaTime;
 
-        public FleeFromPredator() { }
-        public FleeFromPredator(GameObject agent)
-        {
-            snirt = agent.GetComponent<Snirt>();
-        }
+        velocity = Clamp(velocity, -velocityCap, velocityCap);
 
-        public BehaviorResult DoBehavior()
-        {
-            Vector3 v = ((snirt.transform.position - snirt.predator.transform.position) * snirt.speed * 2.5f).normalized;
-            Vector3 force = v - snirt.velocity;
-            snirt.velocity += (force + snirt.Bound()) * Time.deltaTime;
-            snirt.transform.position += snirt.velocity * (snirt.speed * 2.5f) * Time.deltaTime;
-            snirt.transform.rotation = Quaternion.LookRotation(new Vector3(snirt.velocity.x, 0, snirt.velocity.z));
-            return BehaviorResult.SUCCESS;
-        }
-    }
-    #endregion
-
-    #region Food
-    class LowFoodCheck : IBehavior
-    {
-        public BehaviorResult DoBehavior()
-        {
-            // TODO
-            return BehaviorResult.FAILURE;
-        }
+        transform.position += velocity * (speed * speedMod) * Time.deltaTime;
+        transform.rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0, velocity.z));
     }
 
-    class NeedPathCheck : IBehavior
+    /// <summary>
+    /// Basic obstacle avoidance. 
+    /// Requires any obstacles to be on the Obstacle Layer (9)!
+    /// </summary>
+    private Vector3 Avoid()
     {
-        public BehaviorResult DoBehavior()
-        {
-            // TODO
-            return BehaviorResult.FAILURE;
-        }
+        Vector3 temp = Vector3.zero;
+
+        // raycast along velocity
+        // if you detect a collision on something matching the layermask,
+        // raycast velocity * a random small rotation
+        // keep going until you dont collide with anything
+        // once you find a clear path, try to move towards where its clear.
+
+        // TODO
+
+        return temp;
     }
 
-    class CreatePathToFood : IBehavior
+    private Vector3 Clamp(Vector3 a, Vector3 min, Vector3 max)
     {
-        Snirt snirt;
-        List<NodeEX> foodNodes;
-
-        public CreatePathToFood() { }
-        public CreatePathToFood(GameObject agent, List<NodeEX> nodes)
-        {
-            snirt = agent.GetComponent<Snirt>();
-            foodNodes = nodes;
-        }
-
-        public BehaviorResult DoBehavior()
-        {
-            // Set a temp target holding the conents of the first index.
-            NodeEX target = foodNodes[0];
-
-            // Quickly calculate the Manhattan Distance, and set target to whatever is the lowest of the two.
-            foreach (var n in foodNodes)
-            {
-                if (Mathf.Abs(snirt.transform.position.x + n.transform.position.x) + Mathf.Abs(snirt.transform.position.z + n.transform.position.z) < Mathf.Abs(snirt.transform.position.x + target.transform.position.x) + Mathf.Abs(snirt.transform.position.z + target.transform.position.z))
-                {
-                    target = n;
-                }
-            }
-
-            // Use this closest target to preform A*.
-            // TODO
-
-            return BehaviorResult.SUCCESS;
-        }
+        Vector3 temp = new Vector3();
+        temp.x = Mathf.Clamp(a.x, min.x, max.x);
+        // Y is 0 here to prevent a phenomenon I call Group Bouncing.
+        temp.y = 0;
+        temp.z = Mathf.Clamp(a.z, min.z, max.z);
+        return temp;
     }
 
-    class SeekAlongPathToFood : IBehavior
+    /// <summary>
+    /// Adds force to keep the boids within user-specified bounds.
+    /// </summary>
+    private Vector3 Bound()
     {
-        public BehaviorResult DoBehavior()
+        Vector3 temp = Vector3.zero;
+
+        // Checking X
+        if (transform.position.x < boundingPositionBox.Min.x)
         {
-            // TODO
-            return BehaviorResult.SUCCESS;
+            temp.x = boundingPositionBox.repelForce;
         }
+        else if (transform.position.x > boundingPositionBox.Max.x)
+        {
+            temp.x = -boundingPositionBox.repelForce;
+        }
+
+        // Checking Y
+        if (transform.position.y < boundingPositionBox.Min.y)
+        {
+            temp.y = boundingPositionBox.repelForce;
+        }
+        else if (transform.position.y > boundingPositionBox.Max.y)
+        {
+            temp.y = -boundingPositionBox.repelForce;
+        }
+
+        // Checking Z
+        if (transform.position.z < boundingPositionBox.Min.z)
+        {
+            temp.z = boundingPositionBox.repelForce;
+        }
+        else if (transform.position.z > boundingPositionBox.Max.z)
+        {
+            temp.z = -boundingPositionBox.repelForce;
+        }
+
+        return temp;
     }
-    #endregion
-
-    #region Wander
-    class StaminaCheck : IBehavior
-    {
-        private Snirt snirt;
-
-        public StaminaCheck() { }
-        public StaminaCheck(GameObject agent)
-        {
-            snirt = agent.GetComponent<Snirt>();
-        }
-
-        public BehaviorResult DoBehavior()
-        {
-            return snirt.stamina > 0 && snirt.considerMe ? BehaviorResult.SUCCESS : BehaviorResult.FAILURE;
-        }
-    }
-
-    class WanderFlock : IBehavior
-    {
-        private Snirt snirt;
-
-        public WanderFlock() { }
-        public WanderFlock(GameObject agent)
-        {
-            snirt = agent.GetComponent<Snirt>();
-        }
-
-        public BehaviorResult DoBehavior()
-        {
-            snirt.FlockMove();
-            snirt.stamina -= Random.Range(0f, 0.1f);
-            return BehaviorResult.SUCCESS;
-        }
-    }
-
-    class Rest : IBehavior
-    {
-        private Snirt snirt;
-
-        public Rest() { }
-        public Rest(GameObject agent)
-        {
-            snirt = agent.GetComponent<Snirt>();
-        }
-
-        public BehaviorResult DoBehavior()
-        {
-            snirt.considerMe = false;
-            snirt.stamina += Random.Range(0.5f, 1f);
-            if (snirt.stamina >= snirt.staminaMax)
-            {
-                snirt.considerMe = true;
-                snirt.RandomVelocity();
-            }
-            return BehaviorResult.SUCCESS;
-        }
-    }
-    #endregion
-    #endregion
 
     #region Flocking
     /// <summary>
     /// Add all the boid rules together to get the velocity, and transform the position.
     /// </summary>
-    private void FlockMove()
+    private void MoveFlock()
     {
         // Take force vectors for each of the rules.
         Vector3 ruleOne = separationMultiplier * Separation();
@@ -270,9 +210,6 @@ public class Snirt : MonoBehaviour
         Vector3 ruleFour = Bound();
 
         velocity = velocity + ((ruleOne + ruleTwo + ruleThree + ruleFour) * Time.deltaTime);
-
-        // DEBUG ONLY
-        //velocity = new Vector3(1, 1, 1);
 
         velocity = Clamp(velocity, -velocityCap, velocityCap);
 
@@ -356,76 +293,333 @@ public class Snirt : MonoBehaviour
         // Division by 100 here moves it about 1% of the way to the average.
         return (temp - transform.position) / 100;
     }
+    #endregion
+    #endregion
 
-    /// <summary>
-    /// Adds force to keep the boids within user-specified bounds.
-    /// </summary>
-    private Vector3 Bound()
+    #region Behavior Tree Items
+    #region Enemy Check
+    class PredatorInRangeCheck : IBehavior
     {
-        Vector3 temp = Vector3.zero;
+        Snirt snirt;
 
-        // Checking X
-        if (transform.position.x < boundingPositionBox.Min.x)
+        public PredatorInRangeCheck() { }
+        public PredatorInRangeCheck(GameObject agent)
         {
-            temp.x = boundingPositionBox.repelForce;
-        }
-        else if (transform.position.x > boundingPositionBox.Max.x)
-        {
-            temp.x = -boundingPositionBox.repelForce;
+            snirt = agent.GetComponent<Snirt>();
         }
 
-        // Checking Y
-        if (transform.position.y < boundingPositionBox.Min.y)
+        public BehaviorResult DoBehavior()
         {
-            temp.y = boundingPositionBox.repelForce;
+            // TODO maybe improve this instead of having a hard coded distance check
+            return Vector3.Distance(snirt.transform.position, snirt.predator.transform.position) < 5 ? BehaviorResult.SUCCESS : BehaviorResult.FAILURE;
         }
-        else if (transform.position.y > boundingPositionBox.Max.y)
-        {
-            temp.y = -boundingPositionBox.repelForce;
-        }
-
-        // Checking Z
-        if (transform.position.z < boundingPositionBox.Min.z)
-        {
-            temp.z = boundingPositionBox.repelForce;
-        }
-        else if (transform.position.z > boundingPositionBox.Max.z)
-        {
-            temp.z = -boundingPositionBox.repelForce;
-        }
-
-        return temp;
     }
 
-    /// <summary>
-    /// Basic obstacle avoidance. 
-    /// Requires any obstacles to be on the Obstacle Layer (9)!
-    /// </summary>
-    private Vector3 Avoid()
+    class FleeFromPredator : IBehavior
     {
-        Vector3 temp = Vector3.zero;
+        Snirt snirt;
 
-        // raycast along velocity
-        // if you detect a collision on something matching the layermask,
-        // raycast velocity * a random small rotation
-        // keep going until you dont collide with anything
-        // once you find a clear path, try to move towards where its clear.
+        public FleeFromPredator() { }
+        public FleeFromPredator(GameObject agent)
+        {
+            snirt = agent.GetComponent<Snirt>();
+        }
 
-        // TODO
-
-        return temp;
-    }
-
-    private Vector3 Clamp(Vector3 a, Vector3 min, Vector3 max)
-    {
-        Vector3 temp = new Vector3();
-        temp.x = Mathf.Clamp(a.x, min.x, max.x);
-        // Y is 0 here to prevent a phenomenon I call Group Bouncing.
-        temp.y = 0;
-        temp.z = Mathf.Clamp(a.z, min.z, max.z);
-        return temp;
+        public BehaviorResult DoBehavior()
+        {
+            snirt.MoveFrom(snirt.predator.transform.position, 2.5f);
+            return BehaviorResult.SUCCESS;
+        }
     }
     #endregion
+
+    #region Food
+    class LowFoodCheck : IBehavior
+    {
+        Snirt snirt;
+
+        public LowFoodCheck() { }
+        public LowFoodCheck(GameObject agent)
+        {
+            snirt = agent.GetComponent<Snirt>();
+        }
+
+        public BehaviorResult DoBehavior()
+        {
+            return snirt.hunger <= 10 ? BehaviorResult.SUCCESS : BehaviorResult.FAILURE;
+        }
+    }
+
+    class NeedPathCheck : IBehavior
+    {
+        Snirt snirt;
+
+        public NeedPathCheck() { }
+        public NeedPathCheck(GameObject agent)
+        {
+            snirt = agent.GetComponent<Snirt>();
+        }
+
+        public BehaviorResult DoBehavior()
+        {
+            return snirt.finalPath.Count == 0 ? BehaviorResult.SUCCESS : BehaviorResult.FAILURE;
+        }
+    }
+
+    class CreatePathToFood : IBehavior
+    {
+        private Snirt snirt;
+        private static List<NodeEX> foodNodes;
+
+        public CreatePathToFood() { }
+        public CreatePathToFood(GameObject agent, List<NodeEX> foods)
+        {
+            snirt = agent.GetComponent<Snirt>();
+            foodNodes = foods;
+        }
+
+        public BehaviorResult DoBehavior()
+        {
+            // Set a temp target holding the conents of the first index.
+            NodeEX target = foodNodes[0];
+
+            // "Quickly" compare distance, and set target to whatever is the lowest of the two.
+            foreach (var n in foodNodes)
+            {
+                if (Vector3.Distance(snirt.transform.position, n.transform.position) < Vector3.Distance(snirt.transform.position, target.transform.position))
+                {
+                    target = n;
+                }
+            }
+
+            // Use this closest target to preform A*.
+            snirt.destination = target;
+
+            List<NodeEX> open = new List<NodeEX>();
+            List<NodeEX> closed = new List<NodeEX>();
+            NodeEX current = snirt.currentOn;
+            current.resetNode();
+
+            open.Add(current);
+
+            while (open.Count > 0)
+            {
+                // If the destination node is actually in our closed list...
+                if (closed.Exists(check => snirt.destination == check))
+                {
+                    break;
+                }
+
+                // Set current to open's first, then remove it from open, adding it to closed.
+                current = open[0];
+                open.RemoveAt(0);
+                closed.Add(current);
+
+                foreach (var n in current.connections)
+                {
+                    // If the node doesn't already exist in the closed list...
+                    if (!closed.Exists(check => n == check))
+                    {
+                        // If it's not already in open, add it, and calculate the G Score/previous.
+                        if (!open.Exists(check => n == check))
+                        {
+                            // Reset values to blank here to prevent wiping the whole board- which takes way too long.
+                            n.resetNode();
+                            n.GScore = current.GScore + n.costToMove;
+                            n.HScore = (int)Mathf.Abs(current.transform.position.x + snirt.destination.transform.position.x) + (int)Mathf.Abs(current.transform.position.z + snirt.destination.transform.position.z);
+                            n.FScore = n.GScore + n.HScore;
+                            n.previous = current;
+                            open.Add(n);
+                        }
+                        else
+                        {
+                            // If it IS in open, and the new cost is lower...
+                            if (n.GScore > current.GScore + n.costToMove)
+                            {
+                                // Calculate the G Score and previous connection.
+                                n.GScore = current.GScore + n.costToMove;
+                                n.previous = current;
+                            }
+                        }
+                    }
+                }
+
+                SortNodes(ref open);
+            }
+
+            // This will be hit when the while ends naturally or when it hits the break.
+            if (closed.Exists(check => snirt.destination == check))
+            {
+                // We've found the shortest path!
+                // Clear out the old path.
+                snirt.finalPath.Clear();
+                NodeEX temp = snirt.destination;
+                snirt.finalPath.Insert(0, snirt.destination);
+
+                // Add the previous of each node until we reach the start (start is null).
+                while (temp.previous != null)
+                {
+                    snirt.finalPath.Insert(0, temp.previous);
+                    temp = temp.previous;
+                }
+
+                // Remove the node we're currently on as we don't need to seek to
+                // something we're already at.
+                snirt.finalPath.Remove(snirt.currentOn);
+
+                return BehaviorResult.SUCCESS;
+            }
+
+            // If you never found a path- this will fail.
+            return BehaviorResult.FAILURE;
+        }
+
+        /// <summary>
+        /// Sorts A given list of nodes by their F Score. Uses Insertion sort algorithm.
+        /// </summary>
+        private void SortNodes(ref List<NodeEX> nList)
+        {
+            for (int i = 1; i < nList.Count; i++)
+            {
+                NodeEX key = nList[i];
+
+                int j = i - 1;
+
+                while (j >= 0 && nList[j].FScore > key.FScore)
+                {
+                    nList[j + 1] = nList[j];
+                    j = j - 1;
+                    nList[j + 1] = key;
+
+                    if (j > nList.Count) j = 0;
+                }
+            }
+        }
+    }
+
+    class SeekAlongPathToFood : IBehavior
+    {
+        Snirt snirt;
+
+        public SeekAlongPathToFood() { }
+        public SeekAlongPathToFood(GameObject agent)
+        {
+            snirt = agent.GetComponent<Snirt>();
+        }
+
+        public BehaviorResult DoBehavior()
+        {
+            if (snirt.finalPath.Count > 0)
+            {
+                snirt.MoveFrom(snirt.finalPath[0].gameObject.transform.position, 1);
+                return BehaviorResult.SUCCESS;
+            }
+            
+            return BehaviorResult.FAILURE;
+        }
+    }
+    #endregion
+
+    #region Wander
+    class StaminaCheck : IBehavior
+    {
+        private Snirt snirt;
+
+        public StaminaCheck() { }
+        public StaminaCheck(GameObject agent)
+        {
+            snirt = agent.GetComponent<Snirt>();
+        }
+
+        public BehaviorResult DoBehavior()
+        {
+            return snirt.stamina > 0 && snirt.considerMe ? BehaviorResult.SUCCESS : BehaviorResult.FAILURE;
+        }
+    }
+
+    class WanderFlock : IBehavior
+    {
+        private Snirt snirt;
+
+        public WanderFlock() { }
+        public WanderFlock(GameObject agent)
+        {
+            snirt = agent.GetComponent<Snirt>();
+        }
+
+        public BehaviorResult DoBehavior()
+        {
+            snirt.MoveFlock();
+            snirt.stamina -= Random.Range(0f, 0.1f);
+            snirt.hunger -= Random.Range(0f, 0.1f);
+            return BehaviorResult.SUCCESS;
+        }
+    }
+
+    class Rest : IBehavior
+    {
+        private Snirt snirt;
+
+        public Rest() { }
+        public Rest(GameObject agent)
+        {
+            snirt = agent.GetComponent<Snirt>();
+        }
+
+        public BehaviorResult DoBehavior()
+        {
+            snirt.considerMe = false;
+            snirt.stamina += Random.Range(0.5f, 1f);
+            if (snirt.stamina >= snirt.staminaMax)
+            {
+                snirt.considerMe = true;
+                snirt.RandomVelocity();
+            }
+            return BehaviorResult.SUCCESS;
+        }
+    }
+    #endregion
+    #endregion
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Node"))
+        {
+            NodeEX collidedNode = collision.gameObject.GetComponent<NodeEX>();
+            currentOn = collidedNode;
+
+            if (finalPath.Count > 0)
+            {
+                if (collidedNode == destination)
+                {
+                    hunger = hungerMax;
+                }
+
+                if (collidedNode == finalPath[0])
+                {
+                    finalPath.Remove(collidedNode);
+                }
+            }
+        }
+    }
+
+    // Just in-case the Snirt idles on one node.
+    private void OnCollisionStay(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Node"))
+        {
+            NodeEX collidedNode = collision.gameObject.GetComponent<NodeEX>();
+            currentOn = collidedNode;
+
+            if (finalPath.Count > 0)
+            {
+                if (collidedNode == finalPath[0])
+                {
+                    finalPath.Remove(collidedNode);
+                }
+            }
+        }
+    }
 
     void OnTriggerEnter(Collider other)
     {
@@ -440,6 +634,37 @@ public class Snirt : MonoBehaviour
         if (other.gameObject.CompareTag("Boid"))
         {
             neighborhoodL.Remove(other.GetComponent<Snirt>());
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        // Gizmo for the current destination node.
+        if (destination != null)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawSphere(new Vector3(destination.gameObject.transform.position.x, destination.gameObject.transform.position.y + 0.5f, destination.gameObject.transform.position.z), 0.2f);
+        }
+
+        foreach (var n in finalPath)
+        {
+            // Gizmo for highlighting nodes in the final path.
+            Gizmos.color = Color.red;
+            Gizmos.DrawSphere(new Vector3(n.gameObject.transform.position.x, n.gameObject.transform.position.y + 0.5f, n.gameObject.transform.position.z), 0.2f);
+
+            // Gizmo for drawing the path through the final path.
+            Gizmos.color = Color.black;
+            if (n.previous != null)
+            {
+                Gizmos.DrawLine(n.gameObject.transform.position, n.previous.gameObject.transform.position);
+            }
+        }
+
+        // Gizmo for the current destination node.
+        if (currentOn != null)
+        {
+            Gizmos.color = Color.blue;
+            Gizmos.DrawSphere(new Vector3(currentOn.gameObject.transform.position.x, currentOn.gameObject.transform.position.y + 0.5f, currentOn.gameObject.transform.position.z), 0.2f);
         }
     }
 }

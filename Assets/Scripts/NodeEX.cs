@@ -23,7 +23,15 @@ public class NodeEX : MonoBehaviour
     [HideInInspector]
     public List<NodeEX> connections = new List<NodeEX>();
     [HideInInspector]
-    public Node previous;
+    public NodeEX previous;
+
+    public void resetNode()
+    {
+        GScore = 0;
+        HScore = 0;
+        FScore = 0;
+        previous = null;
+    }
 
     private void OnDrawGizmosSelected()
     {

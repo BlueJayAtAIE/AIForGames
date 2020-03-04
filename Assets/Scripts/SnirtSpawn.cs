@@ -8,6 +8,6 @@ public class SnirtSpawn : MonoBehaviour
 
     void Start()
     {
-        Instantiate(snirtPrefab, new Vector3(transform.position.x, transform.position.y + 1.5f, transform.position.z), Quaternion.identity);
+        Instantiate(snirtPrefab, new Vector3(transform.position.x, transform.position.y + 1.005f, transform.position.z), Quaternion.identity);
     }
 }

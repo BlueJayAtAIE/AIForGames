@@ -26,10 +26,10 @@ public class GridSpawner : MonoBehaviour
                 int randy = Random.Range(0, 100);
                 int spawn;
 
-                if (randy < 45) spawn = 0;       // Grass 1 (0-44)
-                else if (randy < 75) spawn = 1;  // Grass 2 (45-74)
-                else if (randy < 76) spawn = 2;  // Berry (75)
-                else if (randy < 98) spawn = 3;  // Water (76-97)
+                if (randy < 50) spawn = 0;       // Grass 1 (0-49)
+                else if (randy < 80) spawn = 1;  // Grass 2 (45-79)
+                else if (randy < 82) spawn = 2;  // Berry (80-81)
+                else if (randy < 98) spawn = 3;  // Water (82-97)
                 else if (randy < 99) spawn = 4;  // Snirt Spawner (98)
                 else spawn = 5;                  // Tree (99)
 

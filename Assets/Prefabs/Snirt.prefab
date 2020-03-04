@@ -601,7 +601,7 @@ GameObject:
   - component: {fileID: 7265434803752517803}
   - component: {fileID: -4529751726935865994}
   - component: {fileID: 7265434803752517802}
-  - component: {fileID: 7265434803752517726}
+  - component: {fileID: 2465347612765893650}
   - component: {fileID: 7265434803752517723}
   - component: {fileID: 7265434803752517724}
   m_Layer: 0
@@ -642,13 +642,14 @@ MonoBehaviour:
   predator: {fileID: 0}
   speed: 2
   velocityCap: {x: 2, y: 2, z: 2}
+  hunger: 0
   hungerMax: 50
   staminaMax: 50
   considerMe: 1
   boundingPositionBox:
     repelForce: 3
     Min: {x: 5, y: -10, z: 5}
-    Max: {x: 55, y: 10, z: 55}
+    Max: {x: 30, y: 2, z: 30}
 --- !u!114 &-4529751726935865994
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -680,8 +681,8 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
---- !u!65 &7265434803752517726
-BoxCollider:
+--- !u!136 &2465347612765893650
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -690,8 +691,9 @@ BoxCollider:
   m_Material: {fileID: 0}
   m_IsTrigger: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Radius: 0.55
+  m_Height: 1
+  m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!135 &7265434803752517723
 SphereCollider:
@@ -720,7 +722,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 112
+  m_Constraints: 116
   m_CollisionDetection: 0
 --- !u!1 &8172561365641909201
 GameObject:
