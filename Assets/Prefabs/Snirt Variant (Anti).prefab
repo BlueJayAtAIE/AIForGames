@@ -110,7 +110,7 @@ PrefabInstance:
     - target: {fileID: 7265434803752517803, guid: 8c591f1751703204d98d5083109f22be,
         type: 3}
       propertyPath: hungerMax
-      value: 50
+      value: 70
       objectReference: {fileID: 0}
     - target: {fileID: 7265434803752517803, guid: 8c591f1751703204d98d5083109f22be,
         type: 3}

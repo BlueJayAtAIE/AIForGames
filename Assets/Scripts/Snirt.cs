@@ -18,9 +18,12 @@ public class Snirt : MonoBehaviour
         public static string fidget = "Fidget";
         public static string eat = "Eating";
         public static string dead = "Dead";
+        public static string deadTransition = "DeathTrig";
     }
 
     #region General Variables
+    private static SnirtSelector sManager; // To manage the UI.
+
     private Animator anim;
 
     private IBehavior behaviourTreeRoot;
@@ -35,10 +38,12 @@ public class Snirt : MonoBehaviour
     private float originalSpeed;
     public Vector3 velocityCap;  // A cap on the velocity to prevent extremely fast movement.
 
-    private float hunger;  // Slowly decreses. Once you get to around 10, look for food.
+    [HideInInspector]
+    public float hunger;  // Slowly decreses. Once you get to around 10, look for food.
     public float hungerMax = 100;  // Hunger cap- used to fill the hunger upon eating. Editable in inspector.
 
-    private float stamina;  // Slowly decreses. Once you get 0, rest and restore stamina.
+    [HideInInspector]
+    public float stamina;  // Slowly decreses. Once you get 0, rest and restore stamina.
     public float staminaMax = 50;  // Stamina cap- used to fill the stamina upon resting. Editable in inspector.
     #endregion
 
@@ -49,6 +54,9 @@ public class Snirt : MonoBehaviour
     private NodeEX destination; // The node the Snirt is attempting to path to.
 
     private List<NodeEX> finalPath = new List<NodeEX>();
+
+    [HideInInspector]
+    public string snirtName; // The name of the Snirt to display in the UI.
     #endregion
 
     #region Flocking Variables
@@ -70,9 +78,14 @@ public class Snirt : MonoBehaviour
 
         gridManager = GameObject.FindGameObjectWithTag("NodeSpawner").GetComponent<GridSpawner>();
 
+        sManager = GameObject.FindGameObjectWithTag("GameController").GetComponent<SnirtSelector>();
+
         predator = GameObject.FindGameObjectWithTag("Enemy"); // TEMP
 
         behaviourTreeRoot = new Selector(                                                           // <ROOT>
+                        new Sequence(                                                                   // [Starvation Check]
+                            new StarvationCheck(gameObject),                                                // (Hunger at Complete 0?)
+                            new Die(gameObject)),                                                           // (PERISH)
                         new Sequence(                                                                   // [Predator Check]
                             new PredatorInRangeCheck(gameObject),                                           // (Can See Predator?)
                             new FleeFromPredator(gameObject)),                                              // (Flee)
@@ -93,6 +106,7 @@ public class Snirt : MonoBehaviour
         stamina = Random.Range(staminaMax - 20, staminaMax);
         waterSpeed = speed / 2;
         originalSpeed = speed;
+        snirtName = RandomName();
 
         RandomVelocity();
     }
@@ -113,6 +127,118 @@ public class Snirt : MonoBehaviour
         velocity = new Vector3(Random.Range(-2f, 2f), 0, Random.Range(-2f, 2f));
     }
 
+    /// <summary>
+    /// Silly function to generate a random (enough) string.
+    /// </summary>
+    private string RandomName()
+    {
+        string temp = "";
+        int randy = Random.Range(1, 7);
+
+        // Title
+        switch (randy)
+        {
+            case 1:
+            case 2:
+            default:
+                // Purposefully blank.
+                break;
+            case 3:
+                temp += "Mr. ";
+                break;
+            case 4:
+                temp += "Sir ";
+                break;
+            case 5:
+                temp += "Mrs. ";
+                break;
+            case 6:
+                temp += "Madame ";
+                break;
+        }
+
+        // Name
+        randy = Random.Range(1, 7);
+        switch (randy)
+        {
+            default:
+                temp += "Snirty";
+                break;
+            case 1:
+                temp += "Chonk";
+                break;
+            case 2:
+                temp += "Bumbo";
+                break;
+            case 3:
+                temp += "Aloe";
+                break;
+            case 4:
+                temp += "Speps";
+                break;
+            case 5:
+                temp += "Grimble";
+                break;
+            case 6:
+                temp += "Sir"; // Yes this is on purpose.
+                break;
+        }
+
+        // Extra
+        randy = Random.Range(1, 7);
+        switch (randy)
+        {
+            default:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                // Purposefully blank.
+                break;
+            case 5:
+                temp += " Jr.";
+                break;
+            case 6:
+                temp += " Sr.";
+                break;
+        }
+
+        return temp;
+    }
+
+    /// <summary>
+    /// Sets a few variables needed for the Snirt to be considered dead by itself and the others.
+    /// </summary>
+    void CommitDie()
+    {
+        considerMe = false;
+        gameObject.layer = 9; // Layer 9 is Obstacles
+        anim.SetTrigger(AnimVariables.deadTransition);
+        anim.SetBool(AnimVariables.dead, true);
+        hunger = 0;
+        stamina = 0;
+        amAlive = false; // This is what will make it no longer go through the behaviour tree.
+        velocity = Vector3.zero;
+    }
+
+    /// <summary>
+    /// For calculating which movement-based animation to play.
+    /// </summary>
+    void DoAnimations()
+    {
+        // TODO
+    }
+
+    /// <summary>
+    /// Subtracts a small amount from stamina and hunger.
+    /// Used on all movement methods.
+    /// </summary>
+    void ModStats()
+    {
+        stamina -= Random.Range(0f, 0.1f);
+        hunger -= Random.Range(0f, 0.1f);
+    }
+
     #region Movement
     /// <summary>
     /// Move towards (Seek) the given target.
@@ -127,6 +253,8 @@ public class Snirt : MonoBehaviour
 
         transform.position += velocity * (speed * speedMod) * Time.deltaTime;
         transform.rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0, velocity.z));
+
+        ModStats();
     }
 
     /// <summary>
@@ -142,6 +270,8 @@ public class Snirt : MonoBehaviour
 
         transform.position += velocity * (speed * speedMod) * Time.deltaTime;
         transform.rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0, velocity.z));
+
+        ModStats();
     }
 
     /// <summary>
@@ -239,6 +369,8 @@ public class Snirt : MonoBehaviour
 
         transform.position = transform.position + velocity * speed * Time.deltaTime;
         transform.rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0, velocity.z));
+
+        ModStats();
     }
 
     /// <summary>
@@ -320,6 +452,41 @@ public class Snirt : MonoBehaviour
     #endregion
 
     #region Behavior Tree Items
+    #region Death
+    class StarvationCheck : IBehavior
+    {
+        Snirt snirt;
+
+        public StarvationCheck() { }
+        public StarvationCheck(GameObject agent)
+        {
+            snirt = agent.GetComponent<Snirt>();
+        }
+
+        public BehaviorResult DoBehavior()
+        {
+            return snirt.hunger <= 0 ? BehaviorResult.SUCCESS : BehaviorResult.FAILURE;
+        }
+    }
+
+    class Die : IBehavior
+    {
+        Snirt snirt;
+
+        public Die() { }
+        public Die(GameObject agent)
+        {
+            snirt = agent.GetComponent<Snirt>();
+        }
+
+        public BehaviorResult DoBehavior()
+        {
+            snirt.CommitDie();
+            return BehaviorResult.SUCCESS;
+        }
+    }
+    #endregion
+
     #region Enemy Check
     class PredatorInRangeCheck : IBehavior
     {
@@ -369,7 +536,7 @@ public class Snirt : MonoBehaviour
 
         public BehaviorResult DoBehavior()
         {
-            return snirt.hunger <= 10 ? BehaviorResult.SUCCESS : BehaviorResult.FAILURE;
+            return snirt.hunger <= snirt.hungerMax / 3 ? BehaviorResult.SUCCESS : BehaviorResult.FAILURE;
         }
     }
 
@@ -534,12 +701,14 @@ public class Snirt : MonoBehaviour
 
         public BehaviorResult DoBehavior()
         {
+            // If you have a path, move towards the first node in the list.
             if (snirt.finalPath.Count > 0)
             {
                 snirt.MoveTowards(snirt.finalPath[0].gameObject.transform.position, 1);
                 return BehaviorResult.SUCCESS;
             }
             
+            // Failsafe- if you no longer have a path, you cant move towards it.
             return BehaviorResult.FAILURE;
         }
     }
@@ -575,8 +744,6 @@ public class Snirt : MonoBehaviour
         public BehaviorResult DoBehavior()
         {
             snirt.MoveFlock();
-            snirt.stamina -= Random.Range(0f, 0.1f);
-            snirt.hunger -= Random.Range(0f, 0.1f);
             return BehaviorResult.SUCCESS;
         }
     }
@@ -584,19 +751,26 @@ public class Snirt : MonoBehaviour
     class Rest : IBehavior
     {
         private Snirt snirt;
+        private int defaultLayer;
 
         public Rest() { }
         public Rest(GameObject agent)
         {
             snirt = agent.GetComponent<Snirt>();
+            defaultLayer = snirt.gameObject.layer;
         }
 
         public BehaviorResult DoBehavior()
         {
+            // Make the others disreguard you and recover stamina.
             snirt.considerMe = false;
             snirt.stamina += Random.Range(0.5f, 1f);
+            snirt.gameObject.layer = 9; // Layer 9 is Obstacles.
+
+            // If you've actually finished recovering set up for resuming wandering.
             if (snirt.stamina >= snirt.staminaMax)
             {
+                snirt.gameObject.layer = defaultLayer;
                 snirt.considerMe = true;
                 snirt.RandomVelocity();
             }
@@ -606,22 +780,42 @@ public class Snirt : MonoBehaviour
     #endregion
     #endregion
 
+    private void OnMouseDown()
+    {
+        sManager.SnirtStats(this);
+    }
+
     private void OnCollisionEnter(Collision collision)
     {
+        // Colliding with a predator (Enemy).
+        if (collision.gameObject.CompareTag("Enemy"))
+        {
+            CommitDie();
+        }
+
+        // Colliding with the ground (Nodes).
         if (collision.gameObject.CompareTag("Node"))
         {
             NodeEX collidedNode = collision.gameObject.GetComponent<NodeEX>();
+
+            // Change the currently on node to this one.
             currentOn = collidedNode;
 
+            // If you're currently pathing, this manages the path.
             if (finalPath.Count > 0)
             {
+                // If this node is the destination- the food- fill hunger and set up resuming wandering.
                 if (collidedNode == destination)
                 {
+                    stamina = 0;
+                    anim.ResetTrigger(AnimVariables.eat);
+                    anim.SetTrigger(AnimVariables.eat);
                     hunger = hungerMax;
                     RandomVelocity();
                     considerMe = true;
                 }
 
+                // If the node is the next in line in the goal path and you hit, remove it.
                 if (collidedNode == finalPath[0])
                 {
                     finalPath.Remove(collidedNode);
@@ -629,6 +823,7 @@ public class Snirt : MonoBehaviour
             }
         }
 
+        // If they've collided with a water tile, they slow down to about half speed.
         if (collision.gameObject.layer == 4)
         {
             speed = waterSpeed;
