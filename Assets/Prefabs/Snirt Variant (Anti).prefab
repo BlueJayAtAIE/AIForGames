@@ -107,6 +107,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: Snirt Variant (Anti)
       objectReference: {fileID: 0}
+    - target: {fileID: 7265434803752517803, guid: 8c591f1751703204d98d5083109f22be,
+        type: 3}
+      propertyPath: hungerMax
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 7265434803752517803, guid: 8c591f1751703204d98d5083109f22be,
+        type: 3}
+      propertyPath: staminaMax
+      value: 100
+      objectReference: {fileID: 0}
     - target: {fileID: 7630954487807033211, guid: 8c591f1751703204d98d5083109f22be,
         type: 3}
       propertyPath: m_Materials.Array.data[0]

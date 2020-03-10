@@ -35,7 +35,7 @@ public class Snirt : MonoBehaviour
     private float originalSpeed;
     public Vector3 velocityCap;  // A cap on the velocity to prevent extremely fast movement.
 
-    public float hunger;  // Slowly decreses. Once you get to around 10, look for food.
+    private float hunger;  // Slowly decreses. Once you get to around 10, look for food.
     public float hungerMax = 100;  // Hunger cap- used to fill the hunger upon eating. Editable in inspector.
 
     private float stamina;  // Slowly decreses. Once you get 0, rest and restore stamina.
