@@ -12,7 +12,17 @@ public class Snirt : MonoBehaviour
         public Vector3 Max;
     }
 
+    private struct AnimVariables
+    {
+        public static string speed = "Speed";
+        public static string fidget = "Fidget";
+        public static string eat = "Eating";
+        public static string dead = "Dead";
+    }
+
     #region General Variables
+    private Animator anim;
+
     private IBehavior behaviourTreeRoot;
 
     public bool amAlive = true; // Upon being toggled to false, the Snirt enters a "dead" state. Does not move, an now an obstacle.
@@ -21,10 +31,12 @@ public class Snirt : MonoBehaviour
 
     private Vector3 velocity;  // The current velocity of the Snirt. 
     public float speed = 4;
+    private float waterSpeed;
+    private float originalSpeed;
     public Vector3 velocityCap;  // A cap on the velocity to prevent extremely fast movement.
 
     public float hunger;  // Slowly decreses. Once you get to around 10, look for food.
-    public float hungerMax = 50;  // Hunger cap- used to fill the hunger upon eating. Editable in inspector.
+    public float hungerMax = 100;  // Hunger cap- used to fill the hunger upon eating. Editable in inspector.
 
     private float stamina;  // Slowly decreses. Once you get 0, rest and restore stamina.
     public float staminaMax = 50;  // Stamina cap- used to fill the stamina upon resting. Editable in inspector.
@@ -54,6 +66,8 @@ public class Snirt : MonoBehaviour
 
     void Start()
     {
+        anim = GetComponent<Animator>();
+
         gridManager = GameObject.FindGameObjectWithTag("NodeSpawner").GetComponent<GridSpawner>();
 
         predator = GameObject.FindGameObjectWithTag("Enemy"); // TEMP
@@ -77,6 +91,8 @@ public class Snirt : MonoBehaviour
 
         hunger = Random.Range(hungerMax - 20, hungerMax);
         stamina = Random.Range(staminaMax - 20, staminaMax);
+        waterSpeed = speed / 2;
+        originalSpeed = speed;
 
         RandomVelocity();
     }
@@ -105,7 +121,7 @@ public class Snirt : MonoBehaviour
     {
         Vector3 v = ((target - transform.position) * (speed * speedMod)).normalized;
         Vector3 force = v - velocity;
-        velocity += force * Time.deltaTime;
+        velocity += (force + Bound()) * Time.deltaTime;
 
         velocity = Clamp(velocity, -velocityCap, velocityCap);
 
@@ -120,7 +136,7 @@ public class Snirt : MonoBehaviour
     {
         Vector3 v = ((transform.position - target) * (speed * speedMod)).normalized;
         Vector3 force = v - velocity;
-        velocity += force * Time.deltaTime;
+        velocity += (force + Bound()) * Time.deltaTime;
 
         velocity = Clamp(velocity, -velocityCap, velocityCap);
 
@@ -136,11 +152,18 @@ public class Snirt : MonoBehaviour
     {
         Vector3 temp = Vector3.zero;
 
-        // raycast along velocity
-        // if you detect a collision on something matching the layermask,
-        // raycast velocity * a random small rotation
-        // keep going until you dont collide with anything
-        // once you find a clear path, try to move towards where its clear.
+        int layerMask = 9; // Layer 9 is Obstacles
+
+        RaycastHit hit;
+        // If you detect a collision on something matching the layermask...
+        if (Physics.Raycast(transform.position, velocity, out hit, 3f, layerMask))
+        {
+            Debug.DrawRay(transform.position, velocity * hit.distance);
+        }
+        
+        // Raycast velocity * a random small rotation (increments of 20)...
+        // Keep going until you dont collide with anything.
+        // Once you find a clear path, try to move towards where its clear.
 
         // TODO
 
@@ -208,8 +231,9 @@ public class Snirt : MonoBehaviour
         Vector3 ruleTwo = alignmentMultiplier * Alignment();
         Vector3 ruleThree = cohesionMultiplier * Cohesion();
         Vector3 ruleFour = Bound();
+        Vector3 ruleFive = Avoid();
 
-        velocity = velocity + ((ruleOne + ruleTwo + ruleThree + ruleFour) * Time.deltaTime);
+        velocity = velocity + ((ruleOne + ruleTwo + ruleThree + ruleFour + ruleFive) * Time.deltaTime);
 
         velocity = Clamp(velocity, -velocityCap, velocityCap);
 
@@ -230,7 +254,7 @@ public class Snirt : MonoBehaviour
         // The ConsiderMe check isn't applied to Separation because they should still maintain distance even while resting.
         foreach (var b in neighborhoodL)
         {
-            if (Vector3.Distance(b.gameObject.transform.position, transform.position) < 3)
+            if (Vector3.Distance(b.gameObject.transform.position, transform.position) < 1.3f)
             {
                 temp = temp - (b.gameObject.transform.position - transform.position);
             }
@@ -262,8 +286,8 @@ public class Snirt : MonoBehaviour
         // Max prevents division by 0.
         temp = temp / Mathf.Max(1, neighborCount);
 
-        // Division by 8 here makesthe desired velocity about 1/8th of the average.
-        return (temp - velocity) / 8;
+        // Division by 4 here makes the desired velocity about 1/4th of the average.
+        return (temp - velocity) / 4;
     }
 
     /// <summary>
@@ -290,8 +314,7 @@ public class Snirt : MonoBehaviour
         // Max prevents division by 0.
         temp = temp / Mathf.Max(1, neighborCount);
 
-        // Division by 100 here moves it about 1% of the way to the average.
-        return (temp - transform.position) / 100;
+        return (temp - transform.position) / 50;
     }
     #endregion
     #endregion
@@ -380,6 +403,8 @@ public class Snirt : MonoBehaviour
 
         public BehaviorResult DoBehavior()
         {
+            snirt.considerMe = false;
+
             // Set a temp target holding the conents of the first index.
             NodeEX target = foodNodes[0];
 
@@ -511,7 +536,7 @@ public class Snirt : MonoBehaviour
         {
             if (snirt.finalPath.Count > 0)
             {
-                snirt.MoveFrom(snirt.finalPath[0].gameObject.transform.position, 1);
+                snirt.MoveTowards(snirt.finalPath[0].gameObject.transform.position, 1);
                 return BehaviorResult.SUCCESS;
             }
             
@@ -593,6 +618,8 @@ public class Snirt : MonoBehaviour
                 if (collidedNode == destination)
                 {
                     hunger = hungerMax;
+                    RandomVelocity();
+                    considerMe = true;
                 }
 
                 if (collidedNode == finalPath[0])
@@ -600,6 +627,15 @@ public class Snirt : MonoBehaviour
                     finalPath.Remove(collidedNode);
                 }
             }
+        }
+
+        if (collision.gameObject.layer == 4)
+        {
+            speed = waterSpeed;
+        }
+        else
+        {
+            speed = originalSpeed;
         }
     }
 

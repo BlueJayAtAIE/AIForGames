@@ -4,10 +4,12 @@ using UnityEngine;
 
 public class SnirtSpawn : MonoBehaviour
 {
-    public GameObject snirtPrefab;
+    public GameObject[] snirtPrefabs;
 
     void Start()
     {
-        Instantiate(snirtPrefab, new Vector3(transform.position.x, transform.position.y + 1.005f, transform.position.z), Quaternion.identity);
+        int randy = Random.Range(0, snirtPrefabs.Length);
+
+        Instantiate(snirtPrefabs[randy], new Vector3(transform.position.x, transform.position.y + 1.005f, transform.position.z), Quaternion.identity);
     }
 }

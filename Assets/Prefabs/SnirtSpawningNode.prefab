@@ -113,8 +113,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92b75e8d5f9011048876352aa340ccc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  snirtPrefab: {fileID: 7265434803752517796, guid: 8c591f1751703204d98d5083109f22be,
-    type: 3}
+  snirtPrefabs:
+  - {fileID: 7265434803752517796, guid: 8c591f1751703204d98d5083109f22be, type: 3}
+  - {fileID: 2066609592457354619, guid: ca213db3105326949925f413543a77c8, type: 3}
+  - {fileID: 5394319788554702589, guid: 23065e7148fea6243bb9ce212f82c11e, type: 3}
+  - {fileID: 161697148374279031, guid: d2b84eab89258874591775a802be108d, type: 3}
 --- !u!65 &256118895416708593
 BoxCollider:
   m_ObjectHideFlags: 0

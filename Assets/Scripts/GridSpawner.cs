@@ -33,6 +33,12 @@ public class GridSpawner : MonoBehaviour
                 else if (randy < 99) spawn = 4;  // Snirt Spawner (98)
                 else spawn = 5;                  // Tree (99)
 
+                // Assures that no important blocks can spawn on the very edges.
+                if (i == 0 || i == x - 1 || j == 0 || j == y - 1)
+                {
+                    spawn = 6; // Impossible Grass
+                }
+
                 // Creates the node from the prefab, AND adds the node component to the grid array.
                 grid[i, j] = Instantiate(nodePrefabs[spawn], new Vector3(i, 0, j), Quaternion.identity).GetComponent<NodeEX>();
                 
