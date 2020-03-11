@@ -644,7 +644,9 @@ MonoBehaviour:
   velocityCap: {x: 2, y: 2, z: 2}
   hunger: 0
   hungerMax: 100
+  stamina: 0
   staminaMax: 50
+  snirtName: 
   considerMe: 1
   boundingPositionBox:
     repelForce: 4

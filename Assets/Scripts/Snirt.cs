@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[SelectionBase]
 public class Snirt : MonoBehaviour
 {
     [System.Serializable]
@@ -22,8 +23,6 @@ public class Snirt : MonoBehaviour
     }
 
     #region General Variables
-    private static SnirtSelector sManager; // To manage the UI.
-
     private Animator anim;
 
     private IBehavior behaviourTreeRoot;
@@ -77,8 +76,6 @@ public class Snirt : MonoBehaviour
         anim = GetComponent<Animator>();
 
         gridManager = GameObject.FindGameObjectWithTag("NodeSpawner").GetComponent<GridSpawner>();
-
-        sManager = GameObject.FindGameObjectWithTag("GameController").GetComponent<SnirtSelector>();
 
         predator = GameObject.FindGameObjectWithTag("Enemy"); // TEMP
 
@@ -226,7 +223,7 @@ public class Snirt : MonoBehaviour
     /// </summary>
     void DoAnimations()
     {
-        // TODO
+        anim.SetFloat(AnimVariables.speed, velocity.magnitude);
     }
 
     /// <summary>
@@ -255,6 +252,7 @@ public class Snirt : MonoBehaviour
         transform.rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0, velocity.z));
 
         ModStats();
+        DoAnimations();
     }
 
     /// <summary>
@@ -272,6 +270,7 @@ public class Snirt : MonoBehaviour
         transform.rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0, velocity.z));
 
         ModStats();
+        DoAnimations();
     }
 
     /// <summary>
@@ -282,22 +281,44 @@ public class Snirt : MonoBehaviour
     {
         Vector3 temp = Vector3.zero;
 
-        int layerMask = 9; // Layer 9 is Obstacles
+        int layerMask = ~LayerMask.NameToLayer("Obstacle"); // Layer 9 is Obstacle
+
+        Debug.DrawRay(transform.position, Quaternion.AngleAxis(-40f, transform.up) * velocity.normalized, Color.green);
+        Debug.DrawRay(transform.position, velocity.normalized, Color.blue);
+        Debug.DrawRay(transform.position, Quaternion.AngleAxis(40f, transform.up) * velocity.normalized, Color.red);
 
         RaycastHit hit;
+
         // If you detect a collision on something matching the layermask...
-        if (Physics.Raycast(transform.position, velocity, out hit, 3f, layerMask))
+        if (Physics.Raycast(transform.position, velocity, out hit, 2f, layerMask))
         {
-            Debug.DrawRay(transform.position, velocity * hit.distance);
+            //Debug.Log("Avoiding " + hit.collider.name);
+
+            // Check Right
+            if (Physics.Raycast(transform.position, Quaternion.AngleAxis(40f, transform.up) * velocity.normalized, out RaycastHit hitLeft, 2f, layerMask))
+            {
+                Debug.DrawLine(transform.position, hitLeft.point);
+                temp = Quaternion.AngleAxis(-20f, transform.up) * velocity.normalized;
+            }
+            else
+            {
+                // Check Left
+                if (Physics.Raycast(transform.position, Quaternion.AngleAxis(-40f, transform.up) * velocity.normalized, out RaycastHit hitRight, 2f, layerMask))
+                {
+                    Debug.DrawLine(transform.position, hitRight.point);
+                    temp = Quaternion.AngleAxis(20f, transform.up) * velocity.normalized;
+                }
+                else
+                {
+                    // If all three rays end up hitting, find a perpendicular of what you hit, 
+                    // and head that way. This is my lazy-time-saving way: just go backwards.
+                    temp = Quaternion.AngleAxis(180f, transform.up) * velocity.normalized;
+                }
+            }
         }
-        
-        // Raycast velocity * a random small rotation (increments of 20)...
-        // Keep going until you dont collide with anything.
         // Once you find a clear path, try to move towards where its clear.
 
-        // TODO
-
-        return temp;
+        return temp / 2;
     }
 
     private Vector3 Clamp(Vector3 a, Vector3 min, Vector3 max)
@@ -371,6 +392,7 @@ public class Snirt : MonoBehaviour
         transform.rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0, velocity.z));
 
         ModStats();
+        DoAnimations();
     }
 
     /// <summary>
@@ -763,6 +785,7 @@ public class Snirt : MonoBehaviour
         public BehaviorResult DoBehavior()
         {
             // Make the others disreguard you and recover stamina.
+            snirt.velocity = Vector3.zero;
             snirt.considerMe = false;
             snirt.stamina += Random.Range(0.5f, 1f);
             snirt.gameObject.layer = 9; // Layer 9 is Obstacles.
@@ -780,11 +803,6 @@ public class Snirt : MonoBehaviour
     #endregion
     #endregion
 
-    private void OnMouseDown()
-    {
-        sManager.SnirtStats(this);
-    }
-
     private void OnCollisionEnter(Collision collision)
     {
         // Colliding with a predator (Enemy).
@@ -798,27 +816,30 @@ public class Snirt : MonoBehaviour
         {
             NodeEX collidedNode = collision.gameObject.GetComponent<NodeEX>();
 
-            // Change the currently on node to this one.
-            currentOn = collidedNode;
-
-            // If you're currently pathing, this manages the path.
-            if (finalPath.Count > 0)
+            if (collidedNode.CanMoveThrough)
             {
-                // If this node is the destination- the food- fill hunger and set up resuming wandering.
-                if (collidedNode == destination)
-                {
-                    stamina = 0;
-                    anim.ResetTrigger(AnimVariables.eat);
-                    anim.SetTrigger(AnimVariables.eat);
-                    hunger = hungerMax;
-                    RandomVelocity();
-                    considerMe = true;
-                }
+                // Change the currently on node to this one.
+                currentOn = collidedNode;
 
-                // If the node is the next in line in the goal path and you hit, remove it.
-                if (collidedNode == finalPath[0])
+                // If you're currently pathing, this manages the path.
+                if (finalPath.Count > 0)
                 {
-                    finalPath.Remove(collidedNode);
+                    // If this node is the destination- the food- fill hunger and set up resuming wandering.
+                    if (collidedNode == destination)
+                    {
+                        stamina = 0;
+                        anim.ResetTrigger(AnimVariables.eat);
+                        anim.SetTrigger(AnimVariables.eat);
+                        hunger = hungerMax;
+                        RandomVelocity();
+                        considerMe = true;
+                    }
+
+                    // If the node is the next in line in the goal path and you hit, remove it.
+                    if (collidedNode == finalPath[0])
+                    {
+                        finalPath.Remove(collidedNode);
+                    }
                 }
             }
         }
@@ -837,16 +858,35 @@ public class Snirt : MonoBehaviour
     // Just in-case the Snirt idles on one node.
     private void OnCollisionStay(Collision collision)
     {
+        // Colliding with the ground (Nodes).
         if (collision.gameObject.CompareTag("Node"))
         {
             NodeEX collidedNode = collision.gameObject.GetComponent<NodeEX>();
-            currentOn = collidedNode;
 
-            if (finalPath.Count > 0)
+            if (collidedNode.CanMoveThrough)
             {
-                if (collidedNode == finalPath[0])
+                // Change the currently on node to this one.
+                currentOn = collidedNode;
+
+                // If you're currently pathing, this manages the path.
+                if (finalPath.Count > 0)
                 {
-                    finalPath.Remove(collidedNode);
+                    // If this node is the destination- the food- fill hunger and set up resuming wandering.
+                    if (collidedNode == destination)
+                    {
+                        stamina = 0;
+                        anim.ResetTrigger(AnimVariables.eat);
+                        anim.SetTrigger(AnimVariables.eat);
+                        hunger = hungerMax;
+                        RandomVelocity();
+                        considerMe = true;
+                    }
+
+                    // If the node is the next in line in the goal path and you hit, remove it.
+                    if (collidedNode == finalPath[0])
+                    {
+                        finalPath.Remove(collidedNode);
+                    }
                 }
             }
         }
